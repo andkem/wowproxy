@@ -1,3 +1,7 @@
 wowproxy is a transparent SOCKS-proxy that I wrote to be able to tunnel WoW through an SSH-tunnel for playing on the Rebirth. In its current state the program seems to work, but it is very much an early version.
 
 Feel free to use this code as you see fit for whatever you like. I take no responsibility for what you do with it.
+
+The program is built using Qt and the project file supplied is for qt-creator.
+
+The program works by listening on the ports WoW uses to authenticate and communicate on the loopback interface. By redirecting your realmlist file to 127.0.0.1 WoW will connect to that address and the proxy will look for a SOCKS proxy on 127.0.0.1:8080 and redirect all traffic through it. The built in addresses are for the Rebirth Vanilla server and can be changed in the code.

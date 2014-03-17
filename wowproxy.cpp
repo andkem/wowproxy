@@ -73,7 +73,7 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
         }
         from_mutex->unlock();
 
-        usleep(100);
+        usleep(10);
     }
 
     qDebug() << "Network thread " << thread_id << " finished!\n";
