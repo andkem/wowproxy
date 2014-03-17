@@ -60,6 +60,8 @@ private:
     int next_thread_id;
     std::vector<Client> client_list;
 
+    void incomingConnection(int socketDiscriptor);
+
 signals:
     
 public slots:

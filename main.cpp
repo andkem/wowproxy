@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     proxy.setPort(8080);
 
     WoWProxy::wowproxy auth_proxy(proxy, WOWAUTHPORT, WOWAUTHPORT, QString("wow.therebirth.net"));
-    WoWProxy::wowproxy data_proxy(proxy, REBIRTHPORT, REBIRTHPORT, QString("wow.theribirth.net"));
+    WoWProxy::wowproxy data_proxy(proxy, REBIRTHPORT, REBIRTHPORT, QString("137.117.101.20"));
     
     return a.exec();
 }
