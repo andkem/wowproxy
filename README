@@ -1,0 +1,3 @@
+wowproxy is a transparent SOCKS-proxy that I wrote to be able to tunnel WoW through an SSH-tunnel for playing on the Rebirth. In its current state the program seems to work, but it is very much an early version.
+
+Feel free to use this code as you see fit for whatever you like. I take no responsibility for what you do with it.
