@@ -48,11 +48,13 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
         {
             QByteArray result = from->readAll();
 
+            from_mutex->unlock();
+
             char org[] = "137.117.101.20";
 
             for (int i = 0; i < result.size() - 15; i++)
             {
-                if (memcmp(org, result.data() + i, 14) == 0)
+                if (memcmp(org, result.constData() + i, 14) == 0)
                 {
                     qDebug() << (result.data() + i) << "\n";
 
@@ -71,7 +73,6 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
             to->flush();
             to_mutex->unlock();
         }
-        from_mutex->unlock();
 
         usleep(10);
     }
