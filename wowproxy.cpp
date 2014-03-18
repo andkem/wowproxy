@@ -24,15 +24,15 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
     if (rev_data_direction)
     {
         from = client.to_socket;
-        mutex = client.mutex;
+        to = client.from_socket;
     }
     else
     {
         from = client.from_socket;
-        mutex = client.mutex;
+        to = client.to_socket;
     }
 
-    to = client.to_socket;
+    mutex = client.mutex;
 
     qDebug() << "Network thread " << thread_id << " started!\n";
 
