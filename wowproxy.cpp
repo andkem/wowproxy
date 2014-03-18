@@ -19,36 +19,31 @@ void networkthread::run()
 void networkthread::HandleClientData(Client client, bool rev_data_direction, int thread_id)
 {
     QTcpSocket *from, *to;
-    std::mutex *from_mutex, *to_mutex;
+    std::mutex *mutex;
 
     if (rev_data_direction)
     {
         from = client.to_socket;
-        from_mutex = client.to_mutex;
+        mutex = client.mutex;
 
         to = client.from_socket;
-        to_mutex = client.from_mutex;
     }
     else
     {
         from = client.from_socket;
-        from_mutex = client.from_mutex;
+        mutex = client.mutex;
 
         to = client.to_socket;
-        to_mutex = client.to_mutex;
     }
 
     qDebug() << "Network thread " << thread_id << " started!\n";
 
     while(from->state() == QAbstractSocket::ConnectedState && to->state() == QAbstractSocket::ConnectedState)
     {
-        from_mutex->lock();
-
-        if (from->waitForReadyRead(0)) //available_client_data > 0)
+        if (from->waitForReadyRead())
         {
+            mutex->lock();
             QByteArray result = from->readAll();
-
-            from_mutex->unlock();
 
             char org[] = "137.117.101.20";
 
@@ -67,14 +62,21 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
                 }
             }
 
-
-            to_mutex->lock();
-            to->write(result);
-            to->flush();
-            to_mutex->unlock();
+            if (to->state() == QAbstractSocket::ConnectedState)
+            {
+                to->write(result);
+                to->flush();
+            }
+            else
+            {
+                from->disconnectFromHost();
+                mutex->unlock();
+                break;
+            }
         }
 
-        usleep(10);
+        mutex->unlock();
+
     }
 
     qDebug() << "Network thread " << thread_id << " finished!\n";
@@ -103,8 +105,7 @@ wowproxy::~wowproxy()
 
         delete client.to_socket;
         delete client.from_socket;
-        delete client.to_mutex;
-        delete client.from_mutex;
+        delete client.mutex;
         delete client.to_thread;
         delete client.from_thread;
     }
@@ -131,11 +132,9 @@ void wowproxy::incomingConnection(int socketDescriptor)
         return;
     }
 
-    std::mutex* to_mutex = new std::mutex;
-    std::mutex* from_mutex = new std::mutex;
+    std::mutex* mutex = new std::mutex;
 
-
-    Client new_client = { server_socket, client, to_mutex, from_mutex, NULL, NULL };
+    Client new_client = { server_socket, client, mutex, NULL, NULL };
 
 
     networkthread *to = new networkthread(new_client, false, next_thread_id++, this);
@@ -159,8 +158,7 @@ void wowproxy::incomingConnection(int socketDescriptor)
         {
             delete itr->to_socket;
             delete itr->from_socket;
-            delete itr->to_mutex;
-            delete itr->from_mutex;
+            delete itr->mutex;
             delete itr->to_thread;
             delete itr->from_thread;
 

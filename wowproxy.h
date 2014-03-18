@@ -20,8 +20,7 @@ struct Client
     QTcpSocket* to_socket;
     QTcpSocket* from_socket;
 
-    std::mutex* to_mutex;
-    std::mutex* from_mutex;
+    std::mutex* mutex;
 
     QThread* to_thread;
     QThread* from_thread;
