@@ -5,8 +5,8 @@
 namespace WoWProxy
 {
 
-networkthread::networkthread(Client client, bool rev_data_direction, int thread_id, QObject* parent) :
-    QThread(parent), client(client), rev_data_direction(rev_data_direction), thread_id(thread_id)
+networkthread::networkthread(Client client, bool rev_data_direction, int thread_id, QObject* parent, void (*filter_function)(QByteArray&)) :
+    QThread(parent), client(client), rev_data_direction(rev_data_direction), thread_id(thread_id), FilterFunction(filter_function)
 {
 
 }
@@ -45,22 +45,8 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
             mutex->lock();
             QByteArray result = from->readAll();
 
-            char org[] = "137.117.101.20";
-
-            for (int i = 0; i < result.size() - 15; i++)
-            {
-                if (memcmp(org, result.constData() + i, 14) == 0)
-                {
-                    qDebug() << (result.data() + i) << "\n";
-
-                    char new_addr[] = "127.000.000.01";
-                    for (unsigned int y = 0; y < 14; y++)
-                        result[i + y] = new_addr[y];
-
-                    qDebug() << (result.data() + i) << "\n";
-
-                }
-            }
+            if (FilterFunction)
+                (*FilterFunction)(result);
 
             if (to->state() == QAbstractSocket::ConnectedState)
             {
@@ -82,15 +68,12 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
     qDebug() << "Network thread " << thread_id << " finished!\n";
 }
 
-wowproxy::wowproxy(QNetworkProxy server_proxy, qint16 listen_port, quint16 target_port, QString target_host, QObject *parent) :
-    QTcpServer(parent), listen_port(listen_port), target_port(target_port)
+wowproxy::wowproxy(QNetworkProxy server_proxy, qint16 listen_port, quint16 target_port, QString target_host, QObject *parent, void (*filter_function)(QByteArray&)) :
+    QTcpServer(parent), proxy(server_proxy), listen_port(listen_port), target_port(target_port), target_host_name(target_host), FilterFunction(filter_function)
 {
     connect(this, SIGNAL(newConnection()), SLOT(HandleNewConnection()));
 
     listen(QHostAddress::Any, listen_port);
-
-    proxy = server_proxy;
-    target_host_name = target_host;
 
     next_thread_id = 0;
 }
@@ -137,10 +120,10 @@ void wowproxy::incomingConnection(int socketDescriptor)
     Client new_client = { server_socket, client, mutex, NULL, NULL };
 
 
-    networkthread *to = new networkthread(new_client, false, next_thread_id++, this);
+    networkthread *to = new networkthread(new_client, false, next_thread_id++, this, FilterFunction);
     to->start();
 
-    networkthread *from = new networkthread(new_client, true, next_thread_id++, this);
+    networkthread *from = new networkthread(new_client, true, next_thread_id++, this, FilterFunction);
     from->start();
 
     client->moveToThread(to);

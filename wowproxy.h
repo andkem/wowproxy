@@ -30,12 +30,14 @@ class networkthread : public QThread
 {
     Q_OBJECT
 public:
-    networkthread(Client client, bool rev_data_direction, int thread_id, QObject* parent);
+    networkthread(Client client, bool rev_data_direction, int thread_id, QObject* parent, void (*filter_function)(QByteArray&) = nullptr);
 
 private:
     Client client;
     bool rev_data_direction;
     int thread_id;
+
+    void (*FilterFunction)(QByteArray &data);
 
     void HandleClientData(Client client, bool rev_data_direction, int thread_id);
 
@@ -46,7 +48,7 @@ class wowproxy : public QTcpServer
 {
     Q_OBJECT
 public:
-    explicit wowproxy(QNetworkProxy server_proxy, qint16 listen_port, quint16 target_port, QString target_host, QObject *parent = 0);
+    explicit wowproxy(QNetworkProxy server_proxy, qint16 listen_port, quint16 target_port, QString target_host, QObject *parent = 0, void (*filter_function)(QByteArray&) = nullptr);
     ~wowproxy();
 
 private:
@@ -60,6 +62,8 @@ private:
     std::vector<Client> client_list;
 
     void incomingConnection(int socketDiscriptor);
+
+    void (*FilterFunction)(QByteArray &data);
 
 signals:
     
