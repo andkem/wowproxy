@@ -14,13 +14,13 @@ void filter(QByteArray &data)
     {
         if (memcmp(org, data.constData() + i, 14) == 0)
         {
-            qDebug() << (data.data() + i) << "\n";
+            qDebug() << "Replaced: " << (data.data() + i) << "\n";
 
             char new_addr[] = "127.000.000.01";
             for (unsigned int y = 0; y < 14; y++)
                 data[i + y] = new_addr[y];
 
-            qDebug() << (data.data() + i) << "\n";
+            qDebug() << "with: " << (data.data() + i) << "\n";
 
         }
     }

@@ -57,10 +57,9 @@ void networkthread::HandleClientData(Client client, bool rev_data_direction, int
                 mutex->unlock();
                 break;
             }
+
+            mutex->unlock();
         }
-
-        mutex->unlock();
-
     }
 
     qDebug() << "Network thread " << thread_id << " finished!\n";
