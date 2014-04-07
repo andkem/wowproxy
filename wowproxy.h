@@ -7,7 +7,7 @@
 #include <QString>
 #include <QThread>
 
-#include <vector>
+#include <list>
 
 #include <thread>
 #include <mutex>
@@ -59,7 +59,7 @@ private:
     QString target_host_name;
 
     int next_thread_id;
-    std::vector<Client> client_list;
+    std::list<Client> client_list;
 
     void incomingConnection(int socketDiscriptor);
 
