@@ -37,6 +37,6 @@ int main(int argc, char *argv[])
 
     WoWProxy::wowproxy auth_proxy(proxy, WOWAUTHPORT, WOWAUTHPORT, QString(ADDRESS), 0, &filter);
     WoWProxy::wowproxy data_proxy(proxy, REBIRTHPORT, REBIRTHPORT, QString(ADDRESS));
-    
+
     return a.exec();
 }
