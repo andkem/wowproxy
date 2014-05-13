@@ -4,25 +4,20 @@
 
 #define WOWAUTHPORT 3724
 #define REBIRTHPORT 8085
-#define ADDRESS "137.117.101.20"
+#define ADDRESS "137.117.100.211"
+
+#define ADDRESS_OFFSET 21
 
 void filter(QByteArray &data)
 {
-    char org[] = "137.117.101.20";
+    char org[]         = "137.117.100.211:8085";
+    char new_address[] = "127.000.000.001:8085";
 
-    for (int i = 0; i < data.size() - 15; i++)
+    if (data.contains(org))
     {
-        if (memcmp(org, data.constData() + i, 14) == 0)
-        {
-            qDebug() << "Replaced: " << (data.data() + i) << "\n";
-
-            char new_addr[] = "127.000.000.01";
-            for (unsigned int y = 0; y < 14; y++)
-                data[i + y] = new_addr[y];
-
-            qDebug() << "with: " << (data.data() + i) << "\n";
-
-        }
+        qDebug() << "Replaced: " << &data.data()[21];
+        data.replace(ADDRESS_OFFSET, sizeof(org), new_address, sizeof(org));
+        qDebug() << " with: " << &data.data()[21] << "\n";
     }
 }
 
