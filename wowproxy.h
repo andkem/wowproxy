@@ -17,13 +17,13 @@ namespace WoWProxy
 
 struct Client
 {
-    QTcpSocket* to_socket;
-    QTcpSocket* from_socket;
+    QTcpSocket* to_socket;       // The socket being written to in the network thread.
+    QTcpSocket* from_socket;     // The socket being read from in the network thread.
 
     std::mutex* mutex;
 
-    QThread* to_thread;
-    QThread* from_thread;
+    QThread* to_thread;         // The thread that writes to the server and reads from the client.
+    QThread* from_thread;       // The thread that has the data direction reversed and writes to the client and reads from the server.
 };
 
 class networkthread : public QThread
@@ -37,9 +37,9 @@ private:
     bool rev_data_direction;
     int thread_id;
 
-    void (*FilterFunction)(QByteArray &data);
+    void (*filter_function)(QByteArray &data);
 
-    void HandleClientData(Client client, bool rev_data_direction, int thread_id);
+    void handle_client_data(Client client, bool rev_data_direction, int thread_id);
 
     void run();
 };
@@ -63,12 +63,12 @@ private:
 
     void incomingConnection(int socketDiscriptor);
 
-    void (*FilterFunction)(QByteArray &data);
+    void (*filter_function)(QByteArray &data);
 
 signals:
     
 public slots:
-    void HandleNewConnection();
+    void handle_new_connection();
     
 };
 

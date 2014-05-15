@@ -5,13 +5,14 @@
 #define WOWAUTHPORT 3724
 #define REBIRTHPORT 8085
 #define ADDRESS "137.117.100.211"
+#define REPLACEMENT_ADDRESS "127.000.000.001:8085"
 
 #define ADDRESS_OFFSET 21
 
 void filter(QByteArray &data)
 {
-    char org[]         = "137.117.100.211:8085";
-    char new_address[] = "127.000.000.001:8085";
+    char org[]         = ADDRESS;
+    char new_address[] = REPLACEMENT_ADDRESS;
 
     if (data.contains(org))
     {
