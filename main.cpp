@@ -4,14 +4,15 @@
 
 #define WOWAUTHPORT 3724
 #define REBIRTHPORT 8085
-#define ADDRESS "137.117.100.211"
-#define REPLACEMENT_ADDRESS "127.000.000.001:8085"
+#define ADDRESS "138.91.117.97"
+#define SERVER_ADDRESS "138.91.118.148"
+#define REPLACEMENT_ADDRESS "127.00.000.001:8085"
 
 #define ADDRESS_OFFSET 21
 
 void filter(QByteArray &data)
 {
-    char org[]         = ADDRESS;
+    char org[]         = SERVER_ADDRESS;
     char new_address[] = REPLACEMENT_ADDRESS;
 
     if (data.contains(org))
@@ -32,7 +33,7 @@ int main(int argc, char *argv[])
     proxy.setPort(8080);
 
     WoWProxy::wowproxy auth_proxy(proxy, WOWAUTHPORT, WOWAUTHPORT, QString(ADDRESS), 0, &filter);
-    WoWProxy::wowproxy data_proxy(proxy, REBIRTHPORT, REBIRTHPORT, QString(ADDRESS));
+    WoWProxy::wowproxy data_proxy(proxy, REBIRTHPORT, REBIRTHPORT, QString(SERVER_ADDRESS));
 
     return a.exec();
 }

@@ -5,61 +5,62 @@
 namespace WoWProxy
 {
 
-networkthread::networkthread(Client client, bool rev_data_direction, int thread_id, QObject* parent, void (*filter_function)(QByteArray&)) :
-    QThread(parent), client(client), rev_data_direction(rev_data_direction), thread_id(thread_id), filter_function(filter_function)
+networkthread::networkthread(Client client, int thread_id, QObject* parent, void (*filter_function)(QByteArray&)) :
+    QThread(parent), client(client), thread_id(thread_id), filter_function(filter_function)
 {
 
 }
 
 void networkthread::run()
 {
-    handle_client_data(client, rev_data_direction, thread_id);
+    handle_client_data(client, thread_id);
 }
 
-void networkthread::handle_client_data(Client client, bool rev_data_direction, int thread_id)
+void networkthread::handle_client_data(Client client, int thread_id)
 {
-    QTcpSocket *from, *to;
-    std::mutex *mutex;
-
-    if (rev_data_direction)
-    {
-        from = client.to_socket;
-        to = client.from_socket;
-    }
-    else
-    {
-        from = client.from_socket;
-        to = client.to_socket;
-    }
-
-    mutex = client.mutex;
-
     qDebug() << "Network thread " << thread_id << " started!\n";
 
-    while(from->state() == QAbstractSocket::ConnectedState && to->state() == QAbstractSocket::ConnectedState)
+    while(client.from_socket->state() == QAbstractSocket::ConnectedState && client.to_socket->state() == QAbstractSocket::ConnectedState)
     {
-        if (from->waitForReadyRead())
+
+        if (client.from_socket->waitForReadyRead(1))
         {
-            mutex->lock();
-            QByteArray result = from->readAll();
+            QByteArray result = client.from_socket->readAll();
 
             if (filter_function)
                 (*filter_function)(result);
 
-            if (to->state() == QAbstractSocket::ConnectedState)
+            if (client.to_socket->state() == QAbstractSocket::ConnectedState)
             {
-                to->write(result);
-                to->flush();
+                client.to_socket->write(result);
+                client.to_socket->flush();
             }
             else
             {
-                from->disconnectFromHost();
-                mutex->unlock();
+                client.from_socket->disconnectFromHost();
                 break;
             }
-
-            mutex->unlock();
         }
+
+        if (client.to_socket->waitForReadyRead(1))
+        {
+            QByteArray result = client.to_socket->readAll();
+
+            if (filter_function)
+                (*filter_function)(result);
+
+            if (client.from_socket->state() == QAbstractSocket::ConnectedState)
+            {
+                client.from_socket->write(result);
+                client.from_socket->flush();
+            }
+            else
+            {
+                client.to_socket->disconnectFromHost();
+                break;
+            }
+        }
+
     }
 
     qDebug() << "Network thread " << thread_id << " finished!\n";
@@ -77,24 +78,13 @@ wowproxy::wowproxy(QNetworkProxy server_proxy, qint16 listen_port, quint16 targe
 
 wowproxy::~wowproxy()
 {
-    for (Client client : client_list)
-    {
-        if (client.to_socket->state() == QAbstractSocket::ConnectedState)
-            client.to_socket->disconnectFromHost();
-
-
-        delete client.to_socket;
-        delete client.from_socket;
-        delete client.mutex;
-        delete client.to_thread;
-        delete client.from_thread;
-    }
+    cleanup_clients(true);
 }
 
 void wowproxy::incomingConnection(int socketDescriptor)
 {
-    QTcpSocket *client = new QTcpSocket();
-    client->setSocketDescriptor(socketDescriptor);
+    QTcpSocket *client_socket = new QTcpSocket();
+    client_socket->setSocketDescriptor(socketDescriptor);
 
     qDebug() << "Handling new connection!\n";
 
@@ -105,49 +95,51 @@ void wowproxy::incomingConnection(int socketDescriptor)
     {
         qDebug() << server_socket->errorString();
 
-        client->disconnectFromHost();
+        client_socket->disconnectFromHost();
 
         delete server_socket;
+        delete client_socket;
 
         return;
     }
 
-    std::mutex* mutex = new std::mutex;
+    Client new_client = { server_socket, client_socket, NULL };
 
-    Client new_client = { server_socket, client, mutex, NULL, NULL };
+    networkthread *client_thread = new networkthread(new_client, next_thread_id++, this, filter_function);
+    client_thread->start();
 
+    client_socket->moveToThread(client_thread);
+    server_socket->moveToThread(client_thread);
 
-    networkthread *to = new networkthread(new_client, false, next_thread_id++, this, filter_function);
-    to->start();
-
-    networkthread *from = new networkthread(new_client, true, next_thread_id++, this, filter_function);
-    from->start();
-
-    client->moveToThread(to);
-    server_socket->moveToThread(from);
-
-    new_client.to_thread = to;
-    new_client.from_thread = from;
+    new_client.client_thread = client_thread;
 
     client_list.push_back(new_client);
 
+    cleanup_clients(false);
+}
+
+void wowproxy::cleanup_clients(bool wait)
+{
     auto itr = client_list.begin();
     do
     {
-        if (!itr->to_thread->isRunning() && !itr->from_thread->isRunning())
+        if (itr->client_thread->wait(wait ? ULONG_MAX : 1))
         {
+            if (itr->to_socket->state() == QAbstractSocket::ConnectedState)
+                itr->to_socket->disconnectFromHost();
+
+            if (itr->from_socket->state() == QAbstractSocket::ConnectedState)
+                itr->from_socket->disconnectFromHost();
+
             delete itr->to_socket;
             delete itr->from_socket;
-            delete itr->mutex;
-            delete itr->to_thread;
-            delete itr->from_thread;
+            delete itr->client_thread;
 
             itr = client_list.erase(itr);
         }
         else
             ++itr;
     } while(itr != client_list.end());
-
 }
 
 void wowproxy::handle_new_connection()
